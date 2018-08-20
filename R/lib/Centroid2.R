@@ -6,8 +6,36 @@ cut_tree <- function(threshold)
   #ClusterMembers <- as.matrix(cut)
   #clusterlabs <<- labels(cut)
   #labs <- row.names(ClusterMembers)
+  #ClusterMembers <<- cbind(clusterID=cut)
+
   ClusterMembers <<- cbind(clusterID=cut)
+  df_ClusterMembers <- as.data.frame(ClusterMembers)
+  max_clusternumber <- max(df_ClusterMembers$clusterID, na.rm = TRUE)
+  new_df <- data.frame(matrix(0,nrow = max_clusternumber, ncol=2))
+  columnnames <- c("cluster_number", "cluster_size")
+  colnames(new_df) <- columnnames
   
+  for (i in 1:max_clusternumber){
+    new_df$cluster_number[i] <- i
+    new_df$cluster_size[i] <- nrow(filter(df_ClusterMembers, clusterID == i))
+  }
+  new_df_ordered <- new_df[order(-as.integer(new_df$cluster_size)),]
+  for (j in 1:max_clusternumber){
+    new_df_ordered$new_cluster_number[j] <- j
+  }
+  
+  reorderedClusterMembers <- ClusterMembers
+  for (k in 1:length(ClusterMembers)){
+    #print(k)
+    h <- match(ClusterMembers[[k]], new_df_ordered$cluster_number)
+    #print(h)
+    reorderedClusterMembers[[k]] <- h
+  }
+  
+  reorderedClusterMembers <- as.matrix(reorderedClusterMembers[order(reorderedClusterMembers),])
+  colnames(reorderedClusterMembers) <- c("clusterID")
+  ClusterMembers <<- reorderedClusterMembers
+#  ClusterMembers <<- as.matrix(ClusterMembers[order(ClusterMembers),])
   
   #ClusterMembers <- ClusterMembers[mixedsort(ClusterMembers),]
   
@@ -23,18 +51,13 @@ find_centroid <- function(cut_tree, cluster_size)
   x <- 0
   centroid <- list()
   cluster_counts <- list()
-  #Added_Counts <- list()
-  #P2_counts <- list()
-  #P4_counts <- list()
+
   h <- 0
   
-  #adds<-input$AddedCompounds
-  #adds_SMI<-read.SMIset(paste(getwd(), adds$name, sep="/"))
-  #P2 <- read.csv("OrderedP2.csv")
-  #P2 <- read.csv("SOS1.csv")
-  #P4 <- read.csv("OrderedP4.csv")
+
   
   for (i in 1:length(cut_tree))
+#  for (i in 1:length(cut_tree$new_cluster_number))
   {
     x <- x+1
     y<-0
@@ -42,7 +65,9 @@ find_centroid <- function(cut_tree, cluster_size)
     
     newcluster <- list()
     for (j in 1:length(cut_tree)){
+#    for (j in 1:length(cut_tree$new_cluster_number)){
       if (cut_tree[[j]]==x)
+#      if (cut_tree$new_cluster_number[[j]]==x)
       {
         y <- y+1
         newcluster[[y]] <- labels(cut_tree)[[1]][[j]]
@@ -124,6 +149,8 @@ find_centroid_adds <- function(cut_tree, cluster_size)
   
   adds<-input$AddedCompounds
   adds_SMI<-read.SMIset(paste(getwd(), adds$name, sep="/"))
+  #adds_SMI<-read.SMIset(adds$name)
+  
   #P2 <- read.csv("OrderedP2.csv")
   #P2 <- read.csv("SOS1.csv")
   #P4 <- read.csv("OrderedP4.csv")
@@ -198,9 +225,53 @@ find_centroid_adds <- function(cut_tree, cluster_size)
       #P2_counts <<- P2_counts
       #P4_counts <<- P4_counts
       cluster_info <- as.data.frame(cbind(Centroid=unlist(centroid), ClusterSize=as.numeric(unlist(cluster_counts)), Added=as.numeric(unlist(Added_Counts))), stringsAsFactors=FALSE) #P2Count=as.numeric(unlist(P2_counts)), P4Count=as.numeric(unlist(P4_counts))), stringsAsFactors = FALSE)
+     
+      #######
+      #Added <- input$AddedLabel
+      #cluster_info <- as.data.frame(cbind(Centroid=unlist(centroid), ClusterSize=as.numeric(unlist(cluster_counts)), Added=as.numeric(unlist(Added_Counts))), stringsAsFactors=FALSE)
       LINCSFreq <- as.numeric(cluster_info$ClusterSize)-as.numeric(cluster_info$Added)# - as.numeric(cluster_info$P2Count) - as.numeric(cluster_info$P4Count)
       cluster_info$LINCS <- LINCSFreq
       cluster_info <<- cluster_info
     }
   }
 }
+
+centroid_clusters <- function(centroid_list, cluster_members){
+  ClusterCentroid <- list()
+  for (i in 1:length(centroid_list)){
+    ind <- grep(centroid_list[[i]], row.names(cluster_members))
+    if (length(ind>1)){
+      ind <- ind[1]
+    }
+    ClusterCentroid[[i]] <- cluster_members[[ind]]
+  }
+  ClusterCentroid <<- ClusterCentroid
+}
+
+
+#test <- sort.list(cluster_counts)
+#test2 <- list()
+#for (i in 1:length(test)){
+#  test2[[i]] <- centroid[[test[[i]]]]
+#}
+#test3 <- cluster_info[order(-as.integer(cluster_info$ClusterSize)),]
+
+
+
+
+#test4 <- as.data.frame(ClusterMembers)
+#test7 <- max(test4$clusterID, na.rm = TRUE)
+#test5 <- data.frame(matrix(0,nrow = test7, ncol=2))
+#test6 <- c("cluster_number", "cluster_size")
+#colnames(test5) <- test6
+#test8 <- data.frame(ncol = 2)
+
+#for (i in 1:max(test4$clusterID, na.rm = TRUE)){
+#  test5$cluster_number[i] <- i
+#  test5$cluster_size[i] <- nrow(filter(test4, clusterID == i))
+#}
+#test9 <- test5[order(-as.integer(test5$cluster_size)),]
+#test10 <- test9
+#for (j in 1:test7){
+#  test10$new_cluster_number[j] <- j
+#}
